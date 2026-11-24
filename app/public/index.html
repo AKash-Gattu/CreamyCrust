@@ -1,0 +1,201 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CreamyCrust | Fresh Dairy Products</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #fffaf0;
+      color: #333;
+    }
+
+    header {
+      background: #174c35;
+      color: white;
+      padding: 22px;
+      text-align: center;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 35px 15px;
+      background: #f4e7c8;
+    }
+
+    .hero h2 {
+      color: #174c35;
+      font-size: 30px;
+    }
+
+    .container {
+      padding: 25px;
+    }
+
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px #ddd;
+    }
+
+    .card h3 {
+      color: #174c35;
+    }
+
+    button {
+      background: #174c35;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .cart {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 25px;
+    }
+
+    footer {
+      background: #174c35;
+      color: white;
+      padding: 18px;
+      text-align: center;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>🥛 CreamyCrust</h1>
+  <p>Pure Freshness. Every Single Day.</p>
+</header>
+
+<section class="hero">
+  <h2>Fresh Dairy Products Delivered to You</h2>
+  <p>Milk, Paneer, Ghee, Butter, Cheese and More!</p>
+</section>
+
+<div class="container">
+  <h2>Our Dairy Products</h2>
+  <div id="products" class="products"></div>
+
+  <section class="cart">
+    <h2>🛒 Your Shopping Cart</h2>
+    <div id="cart">Your cart is empty.</div>
+    <h3 id="total">Total: ₹0</h3>
+    <button onclick="placeOrder()">Place Order</button>
+    <p id="message"></p>
+  </section>
+</div>
+
+<footer>
+  <p>© 2026 CreamyCrust | Fresh Dairy, Healthy Living</p>
+</footer>
+
+<script>
+  let cart = [];
+
+  async function loadProducts() {
+    const response = await fetch("/api/products");
+    const products = await response.json();
+
+    document.getElementById("products").innerHTML =
+      products.map(p => `
+        <div class="card">
+          <h3>${p.name}</h3>
+          <p>Category: ${p.category}</p>
+          <h4>₹${p.price}</h4>
+          <button onclick="addToCart(${p.id})">
+            Add to Cart
+          </button>
+        </div>
+      `).join("");
+  }
+
+  function addToCart(id) {
+    const item = cart.find(p => p.productId === id);
+
+    if (item) {
+      item.quantity++;
+    } else {
+      cart.push({ productId: id, quantity: 1 });
+    }
+
+    displayCart();
+  }
+
+  async function displayCart() {
+    const response = await fetch("/api/products");
+    const products = await response.json();
+
+    let total = 0;
+
+    document.getElementById("cart").innerHTML =
+      cart.length ? cart.map(item => {
+        const product = products.find(p => p.id === item.productId);
+        const subtotal = product.price * item.quantity;
+        total += subtotal;
+
+        return `
+          <p>${product.name} × ${item.quantity}
+          = ₹${subtotal}
+          <button onclick="removeItem(${item.productId})">
+            Remove
+          </button></p>
+        `;
+      }).join("") : "Your cart is empty.";
+
+    document.getElementById("total").innerText =
+      "Total: ₹" + total;
+  }
+
+  function removeItem(id) {
+    cart = cart.filter(item => item.productId !== id);
+    displayCart();
+  }
+
+  async function placeOrder() {
+    if (!cart.length) {
+      document.getElementById("message").innerText =
+        "Please add products first.";
+      return;
+    }
+
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: cart })
+    });
+
+    const result = await response.json();
+
+    document.getElementById("message").innerText =
+      result.message;
+
+    if (response.ok) {
+      cart = [];
+      displayCart();
+    }
+  }
+
+  loadProducts();
+</script>
+
+</body>
+</html>
+
